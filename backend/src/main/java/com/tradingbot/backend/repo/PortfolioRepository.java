@@ -67,11 +67,24 @@ public class PortfolioRepository {
 
 public int reducePosition(long accountId, String symbol, BigDecimal sellQty) {
     return jdbc.update(
-        "UPDATE portfolio SET quantity = quantity - ?, updated_at = NOW() " +
+        "UPDATE portfolio " +
         "SET quantity = quantity - ?, updated_at = NOW() " +
-        "WHERE account_id = ? AND symbol = ?",
-        sellQty, accountId, symbol
+        "WHERE account_id = ? AND symbol = ? AND quantity >= ?",
+        sellQty, accountId, symbol, sellQty
     );
 }
 
+public List<Map<String, Object>> getPortfolio(long accountId) {
+    return jdbc.queryForList(
+        "SELECT symbol, quantity, avg_entry_price, updated_at " +
+        "FROM portfolio WHERE account_id = ? ORDER BY symbol",
+        accountId
+    );
+}
+public int deleteIfZero(long accountId, String symbol) {
+    return jdbc.update(
+        "DELETE FROM portfolio WHERE account_id = ? AND symbol = ? AND quantity <= 0",
+        accountId, symbol
+    );
+}
 }

@@ -1,5 +1,8 @@
 package com.tradingbot.backend.controller;
 
+import com.tradingbot.backend.service.BotService;
+import com.tradingbot.backend.service.MACrossoverStrategy;
+
 import com.tradingbot.backend.service.TradeService;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +15,12 @@ public class BotController {
 
     private final TradeService tradeService;
 
-    public BotController(TradeService tradeService) {
-        this.tradeService = tradeService;
-    }
+    public BotController(TradeService tradeService, BotService botService) {
+    this.tradeService = tradeService;
+    this.botService = botService;
+}
+    private final BotService botService;
+
      @GetMapping("/ping")
         public String ping() {
             return "pong";
@@ -37,7 +43,27 @@ public class BotController {
         tradeService.sell(accountId, symbol, price, mode);
         return "OK";
     }
-   
 
-    
+   // TRADING MODE: one live step (fetch prices -> decide -> trade)
+    @PostMapping("/step")
+    public String step(@RequestParam long accountId,
+                       @RequestParam String symbol) {
+        MACrossoverStrategy.Signal signal = botService.runTradingStep(accountId, symbol);
+        return "Signal=" + signal;
+    }
+
+    // TRAINING MODE: backtesting on historical candles
+
+    @PostMapping("/train")
+    public String train(@RequestParam long accountId,
+                        @RequestParam String symbol,
+                        @RequestParam(defaultValue = "200") int limit) {
+        int trades = botService.runTraining(accountId, symbol, limit);
+        return "Training done. Trades executed=" + trades;
+
+
+    }
+
+
+
 }

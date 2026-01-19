@@ -1,5 +1,7 @@
 package com.tradingbot.backend.repo;
 
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -29,4 +31,11 @@ public class TradeRepository {
             accountId, mode, symbol, side, quantity, price, fee, pnl
         );
     }
+    public List<Map<String, Object>> getTrades(long accountId) {
+    return jdbc.queryForList(
+        "SELECT `timestamp`, side, symbol, quantity, price, pnl " +
+        "FROM trade WHERE account_id = ? ORDER BY `timestamp` DESC",
+        accountId
+    );
 }
+}   

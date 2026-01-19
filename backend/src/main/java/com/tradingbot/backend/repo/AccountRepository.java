@@ -4,6 +4,8 @@ package com.tradingbot.backend.repo;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
+
 import java.math.BigDecimal;
 
 @Repository
@@ -28,4 +30,10 @@ public class AccountRepository {
             newCash, accountId
         );
     }
+    public Map<String, Object> getAccount(long accountId) {
+    return jdbc.queryForMap(
+        "SELECT id, cash_balance, created_at FROM account WHERE id = ?",
+        accountId
+    );
+}
 }
