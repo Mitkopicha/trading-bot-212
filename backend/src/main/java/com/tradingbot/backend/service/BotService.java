@@ -56,4 +56,47 @@ public class BotService {
         }
         return trades;
     }
+
+    public TrainingStepResult runTrainingStep(long accountId, String symbol, int limit, int index) {
+    List<BigDecimal> closes = priceService.getHistoricalCloses(symbol, "1m", limit);
+
+    // need enough data for MA20 + previous
+    if (index < 21) index = 21;
+
+    if (index >= closes.size()) {
+        return new TrainingStepResult(true, closes.size(), 0, MACrossoverStrategy.Signal.HOLD);
+    }
+
+    List<BigDecimal> slice = closes.subList(0, index + 1);
+    MACrossoverStrategy.Signal signal = strategy.decide(slice);
+    BigDecimal price = closes.get(index);
+
+    int trades = 0;
+    if (signal == MACrossoverStrategy.Signal.BUY) {
+        tradeService.buy(accountId, symbol, price, "TRAINING");
+        trades = 1;
+    } else if (signal == MACrossoverStrategy.Signal.SELL) {
+        tradeService.sell(accountId, symbol, price, "TRAINING");
+        trades = 1;
+    }
+
+    int nextIndex = index + 1;
+    boolean done = nextIndex >= closes.size();
+
+    return new TrainingStepResult(done, nextIndex, trades, signal);
+}   
+public static class TrainingStepResult {
+    public boolean done;
+    public int nextIndex;
+    public int tradesExecuted;
+    public MACrossoverStrategy.Signal signal;
+
+    public TrainingStepResult(boolean done, int nextIndex, int tradesExecuted, MACrossoverStrategy.Signal signal) {
+        this.done = done;
+        this.nextIndex = nextIndex;
+        this.tradesExecuted = tradesExecuted;
+        this.signal = signal;
+    }
+}
+
 }

@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api")
+
 public class BotController {
 
     private final TradeService tradeService;
@@ -63,6 +64,13 @@ public class BotController {
 
 
     }
+@PostMapping("/train/step")
+public BotService.TrainingStepResult trainStep(@RequestParam long accountId,
+                                               @RequestParam String symbol,
+                                               @RequestParam(defaultValue = "200") int limit,
+                                               @RequestParam int index) {
+    return botService.runTrainingStep(accountId, symbol, limit, index);
+}
 
 
 
