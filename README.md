@@ -33,7 +33,7 @@ All activity is simulated; no real funds are used.
 
 | Layer     | Technology                      |
 |----------:|:--------------------------------|
-| Frontend  | React + Vite (HTML, CSS, JS)    |
+| Frontend  | : HTML, CSS, JavaScript(React)  |
 | Backend   | Java, Spring Boot (raw JDBC)    |
 | Database  | MariaDB                         |
 | Market    | Binance public REST API         |
