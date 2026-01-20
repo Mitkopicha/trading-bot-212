@@ -45,34 +45,43 @@ public class TradeService {
         portfolioRepo.upsertBuy(accountId, symbol, qty, price);
     }
 
-    @Transactional
-    public void sell(long accountId, String symbol, BigDecimal price, String mode) {
+   @Transactional
+public void sell(long accountId, String symbol, BigDecimal price, String mode) {
 
-        if (price.compareTo(BigDecimal.ZERO) <= 0) return;
+    if (price.compareTo(BigDecimal.ZERO) <= 0) return;
 
-        BigDecimal positionQty;
-        try {
-            positionQty = portfolioRepo.getPositionQtyForUpdate(accountId, symbol);
-        } catch (Exception e) {
-            return; // no portfolio row
-        }
-
-        if (positionQty.compareTo(BigDecimal.ZERO) <= 0) return;
-
-        BigDecimal sellQty = positionQty.multiply(new BigDecimal("0.10"))
-                .setScale(8, RoundingMode.DOWN);
-
-        if (sellQty.compareTo(BigDecimal.ZERO) <= 0) return;
-
-        tradeRepo.insertTrade(accountId, mode, symbol, "SELL", sellQty, price, null, null);
-
-        BigDecimal cash = accountRepo.getCashBalanceForUpdate(accountId);
-
-        BigDecimal proceeds = sellQty.multiply(price).setScale(8, RoundingMode.HALF_UP);
-        BigDecimal newCash = cash.add(proceeds);
-
-        accountRepo.updateCashBalance(accountId, newCash);
-
-        portfolioRepo.reducePosition(accountId, symbol, sellQty);
+    BigDecimal positionQty;
+    BigDecimal avgEntry;
+    try {
+        positionQty = portfolioRepo.getPositionQtyForUpdate(accountId, symbol);
+        avgEntry = portfolioRepo.getAvgEntryPriceForUpdate(accountId, symbol);
+    } catch (Exception e) {
+        return; 
     }
+
+    if (positionQty == null || positionQty.compareTo(BigDecimal.ZERO) <= 0) return;
+    if (avgEntry == null) avgEntry = BigDecimal.ZERO;
+
+    BigDecimal sellQty = positionQty.multiply(new BigDecimal("0.10"))
+            .setScale(8, RoundingMode.DOWN);
+
+    if (sellQty.compareTo(BigDecimal.ZERO) <= 0) return;
+
+    
+    int updated = portfolioRepo.reducePosition(accountId, symbol, sellQty);
+    if (updated == 0) return;
+
+    BigDecimal cash = accountRepo.getCashBalanceForUpdate(accountId);
+    BigDecimal proceeds = sellQty.multiply(price).setScale(8, RoundingMode.HALF_UP);
+    BigDecimal newCash = cash.add(proceeds);
+    accountRepo.updateCashBalance(accountId, newCash);
+
+ 
+    BigDecimal pnl = price.subtract(avgEntry)
+            .multiply(sellQty)
+            .setScale(8, RoundingMode.HALF_UP);
+    tradeRepo.insertTrade(accountId, mode, symbol, "SELL", sellQty, price, null, pnl);
+    portfolioRepo.deleteIfZero(accountId, symbol);
+}
+
 }
