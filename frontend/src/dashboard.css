@@ -1,0 +1,630 @@
+:root{
+  --bg: #0f1115;
+  --card: #151922;
+  --border: #242a36;
+  --text: #e7eaf0;
+  --muted: #a7b0c0;
+}
+
+* { box-sizing: border-box; }
+
+body{
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+.container{
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.title{
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 16px;
+}
+
+.card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.card h2{
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+input, select, button{
+  background: #0f131b;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+button{
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity: .45;
+  cursor:not-allowed;
+}
+
+.table{
+  width:100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th, .table td{
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  text-align:left;
+  color: var(--text);
+}
+
+.table th{
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.small{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.stack{
+  display:flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* SUMMARY BAR */
+.summaryBar{
+  display:flex;
+  gap: 24px;
+  align-items:center;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.summaryItem{
+  display:flex;
+  flex-direction: column;
+}
+
+.summaryItem .label{
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+.summaryItem .value{
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.summaryItem.pos .value{
+  color: #3ddc97;
+}
+
+.summaryItem.neg .value{
+  color: #ff6b6b;
+}
+
+.summaryRight{
+  display:flex;
+  align-items:flex-end;
+  gap: 16px;
+}
+
+.summaryMeta{
+  display:flex;
+  flex-direction: column;
+  align-items:flex-start;
+}
+
+.valueSmall{
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statusBadge{
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align:center;
+}
+
+.statusBadge.active{
+  background: #13291e;
+  color: #3ddc97;
+}
+
+.statusBadge.paused{
+  background: #1f2533;
+  color: #a7b0c0;
+}
+
+/* MINI HOLDINGS BAR CHART */
+.miniBarWrap{
+  min-width: 320px;
+  flex: 1;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.miniBarTitle{
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.miniBarEmpty{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.miniBars{
+  display:flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.miniBarRow{
+  display:grid;
+  grid-template-columns: 70px 1fr 70px;
+  gap: 10px;
+  align-items:center;
+}
+
+.miniBarLabel{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.miniBarTrack{
+  height: 10px;
+  background: #0f131b;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.miniBarFill{
+  height: 100%;
+  background: #3ddc97;
+  border-radius: 999px;
+}
+
+.miniBarValue{
+  font-size: 12px;
+  color: var(--text);
+  text-align:right;
+}
+
+.controlsLayout{
+  display: grid;
+  grid-template-columns: 360px 1fr; /* slightly wider left panel */
+  gap: 18px;
+  align-items: center;            /* key: vertically align */
+}
+
+.controlsLeft{
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controlsRight{
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* THIS is the important part */
+.controlsActionsRow{
+  display: grid;
+  grid-template-columns: 1fr auto; /* symbol takes leftover space, buttons stay right */
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.controlsRowLeft{
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.controlsSymbol{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controlsSymbol input{
+  width: 240px;          /* makes the row look filled */
+  max-width: 100%;
+}
+
+.controlsRowRight{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;       /* prevents overflow */
+}
+
+.modeTabs{
+  display:flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #0f131b;
+  width: fit-content;
+}
+
+.modeTabs.underTitle{
+  margin-top: 2px;
+}
+
+.tab{
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 0;
+}
+
+.tab.active{
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.iconBtn{
+  width: 44px;
+  height: 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.primaryBtn{
+  padding: 10px 16px;
+  font-weight: 900;
+  border: 2px solid #e7eaf0;
+}
+
+.dangerBtn{
+  border: 1px solid #7a2d2d;
+  background: #1a0f12;
+}
+
+.settingsPanel{
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items:center;
+  justify-content:flex-end;
+}
+
+/* TRAINING ROW */
+.trainingRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.trainingLeft{
+  flex: 1;
+  min-width: 280px;
+}
+
+.trainingProgressLabel{
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.trainingProgressTrack{
+  height: 10px;
+  border-radius: 999px;
+  background: #0f131b;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.trainingProgressFill{
+  height: 100%;
+  border-radius: 999px;
+  background: #3ddc97;
+}
+
+.trainingRight{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  justify-content:flex-end;
+}
+
+.trainingRight input{
+  width: 110px;
+}
+
+/* PNL coloring */
+.pnlPos{ color: #3ddc97; font-weight: 700; }
+.pnlNeg{ color: #ff6b6b; font-weight: 700; }
+.pnlMuted{ color: var(--muted); }
+
+/* --------- NEW: Trade History scroll + Date formatting --------- */
+.tableScroll{
+  max-height: 520px;
+  overflow: auto;
+  border-radius: 12px;
+}
+
+/* sticky header when scrolling */
+.table thead th{
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+}
+
+/* Date column wider + no wrapping */
+.colDate{ width: 140px; }
+.tdDate{
+  width: 140px;
+  white-space: nowrap;
+}
+/* --------------------------------------------------------------- */
+
+/* Mobile */
+@media (max-width: 900px){
+  .grid { grid-template-columns: 1fr; }
+
+  .miniBarWrap{
+    border-left: none;
+    padding-left: 0;
+    min-width: unset;
+    width: 100%;
+  }
+
+  .controlsLayout{
+    grid-template-columns: 1fr;
+  }
+
+  .controlsActionsRow{
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .settingsPanel{
+    justify-content:flex-start;
+  }
+
+  .trainingRow{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trainingRight{
+    justify-content:flex-start;
+    flex-wrap: wrap;
+  }
+
+  .controlsSymbol input{
+    width: 200px;
+  }
+
+  .controlsRowRight{
+    justify-content: flex-start;
+  }
+
+  .tableScroll{
+    max-height: 420px;
+  }
+}
+/* Make ONLY trade history scroll (not portfolio) */
+.tradeHistoryScroll{
+  max-height: 520px;
+  overflow: auto;
+  border-radius: 12px;
+}
+
+/* Keep header visible while scrolling */
+.tradeHistoryScroll thead th{
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 2;
+}
+
+/* Date column: wider and no wrapping */
+.colDate{ width: 140px; }
+.tdDate{
+  width: 140px;
+  white-space: nowrap;
+}
+
+/* --------- Chart header/meta --------- */
+.chartHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.chartTitleRow{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chartSymbol{
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+.chartMetaDot{
+  color: var(--muted);
+  opacity: .8;
+}
+
+.chartMeta{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chartSub{
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.chartLegend{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+  justify-content:flex-end;
+}
+
+.legendPill{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #0f131b;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.legendPill.buy{
+  color: #3ddc97;
+}
+
+.legendPill.sell{
+  color: #ff6b6b;
+}
+/* ------------------------------------- */
+
+/* Card top row with title and metadata */
+.cardTopRow{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cardMeta{
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Equity metadata row */
+.equityMetaRow{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  margin: 6px 0 12px 0;
+}
+
+.equityMeta{
+  display:flex;
+  flex-direction:column;
+  gap: 2px;
+}
+
+.equityMeta .small{
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.equityMeta strong{
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.equityPnl{
+  margin-left:auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.equityPnl.pos{ 
+  color:#3ddc97; 
+  background:#13291e; 
+  border-color: #1f4a37;
+}
+
+.equityPnl.neg{ 
+  color:#ff6b6b; 
+  background:#1a0f12; 
+  border-color: #3a1818;
+}
+
