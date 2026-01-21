@@ -2,76 +2,55 @@ package com.tradingbot.backend.controller;
 
 import com.tradingbot.backend.service.BotService;
 import com.tradingbot.backend.service.MACrossoverStrategy;
-
-import com.tradingbot.backend.service.TradeService;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-
 public class BotController {
 
-    private final TradeService tradeService;
-
-    public BotController(TradeService tradeService, BotService botService) {
-    this.tradeService = tradeService;
-    this.botService = botService;
-}
     private final BotService botService;
 
-     @GetMapping("/ping")
-        public String ping() {
-            return "pong";
-        }
-
-    @PostMapping("/buy")
-    public String buy(@RequestParam long accountId,
-                      @RequestParam String symbol,
-                      @RequestParam BigDecimal price,
-                      @RequestParam(defaultValue = "TRADING") String mode) {
-        tradeService.buy(accountId, symbol, price, mode);
-        return "OK";
+    public BotController(BotService botService) {
+        this.botService = botService;
     }
 
-    @PostMapping("/sell")
-    public String sell(@RequestParam long accountId,
-                       @RequestParam String symbol,
-                       @RequestParam BigDecimal price,
-                       @RequestParam(defaultValue = "TRADING") String mode) {
-        tradeService.sell(accountId, symbol, price, mode);
-        return "OK";
+    @GetMapping("/ping")
+    public String ping() {
+        return "pong";
     }
 
-   // TRADING MODE: one live step (fetch prices -> decide -> trade)
-    @PostMapping("/step")
-    public String step(@RequestParam long accountId,
-                       @RequestParam String symbol) {
-        MACrossoverStrategy.Signal signal = botService.runTradingStep(accountId, symbol);
-        return "Signal=" + signal;
+    // ===== TRADING MODE =====
+    @PostMapping("/trade/step")
+    public MACrossoverStrategy.Signal tradeStep(@RequestParam long accountId,
+                                                @RequestParam String symbol) {
+        return botService.runTradingStep(accountId, symbol);
     }
 
-    // TRAINING MODE: backtesting on historical candles
-
+    // ===== TRAINING MODE (batch) =====
     @PostMapping("/train")
     public String train(@RequestParam long accountId,
                         @RequestParam String symbol,
-                        @RequestParam(defaultValue = "200") int limit) {
-        int trades = botService.runTraining(accountId, symbol, limit);
+                        @RequestParam(defaultValue = "200") int limit,
+                        @RequestParam(defaultValue = "0") int offset) {
+        int trades = botService.runTraining(accountId, symbol, limit, offset);
         return "Training done. Trades executed=" + trades;
-
-
     }
-@PostMapping("/train/step")
-public BotService.TrainingStepResult trainStep(@RequestParam long accountId,
-                                               @RequestParam String symbol,
-                                               @RequestParam(defaultValue = "200") int limit,
-                                               @RequestParam int index) {
-    return botService.runTrainingStep(accountId, symbol, limit, index);
-}
 
+    // ===== TRAINING MODE (step) =====
+    @PostMapping("/train/step")
+    public BotService.TrainingStepResult trainStep(@RequestParam long accountId,
+                                                   @RequestParam String symbol,
+                                                   @RequestParam(defaultValue = "200") int limit,
+                                                   @RequestParam int index,
+                                                   @RequestParam(defaultValue = "0") int offset,
+                                                   @RequestBody(required = false) List<BotService.CandleDTO> candles) {
 
+        if (candles != null && !candles.isEmpty()) {
+            return botService.runTrainingStepWithCandles(accountId, symbol, candles, index);
+        }
 
+        return botService.runTrainingStep(accountId, symbol, limit, index, offset);
+    }
 }
