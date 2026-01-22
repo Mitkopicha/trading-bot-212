@@ -285,3 +285,6 @@ Run all tests from the backend directory:
 The first 8:25 of the video are for Trading mode then Training Mode is tested. I suggested watching on accelerated speed :).
 https://youtu.be/eMxZGuw-gRw
 
+Seperate video for Training mode. 
+https://youtu.be/WYmNk7y5g3Q
+
