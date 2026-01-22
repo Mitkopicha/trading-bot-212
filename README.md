@@ -1,61 +1,107 @@
-<h1 align="center">Auto Trading Bot — Take-Home Task</h1>
+# Auto Trading Bot — Take-Home Task
 
-<p align="center">A simple web application that simulates an automated crypto trading bot. All trades are simulated — no real money is used.</p>
+A **simple, clean web application** that simulates an automated crypto trading bot.
+All trades are **fully simulated** — **no real money** is used.
+
+This project was built as a **take-home interview task**, focusing on clarity, correctness, and explainable logic rather than complexity.
 
 ---
 
-## Table of contents
+## Table of Contents
 
-- [Overview](#overview)
-- [Tech stack](#tech-stack)
-- [Features](#features)
-- [Dashboard](#dashboard)
-- [Project structure](#project-structure)
-- [Setup](#setup)
-  - [Database (MariaDB)](#database-mariadb)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-- [How to run](#how-to-run)
-- [Notes](#notes)
+* [Overview](#overview)
+* [Tech Stack](#tech-stack)
+* [Features](#features)
+* [Trading Strategy](#trading-strategy)
+* [Dashboard](#dashboard)
+* [Project Structure](#project-structure)
+* [Setup Instructions](#setup-instructions)
+
+  * [Prerequisites](#prerequisites)
+  * [Database Setup (MariaDB)](#database-setup-mariadb)
+  * [Backend Setup](#backend-setup)
+  * [Frontend Setup](#frontend-setup)
+* [How to Run the Project](#how-to-run-the-project)
+* [Testing](#testing)
+* [Notes for Reviewers](#notes-for-reviewers)
 
 ---
 
 ## Overview
 
-This repository contains a minimal web application that demonstrates an automated crypto trading bot. It supports two operating modes:
+This repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
 
-- Training mode — backtesting on historical price data
-- Trading mode — live simulation using current market prices
+* **Training Mode** – Backtesting the trading strategy on historical market data
+* **Trading Mode** – Live simulation using current market prices
 
-All activity is simulated; no real funds are used.
+The goal is to demonstrate:
 
-## Tech stack
+* Clean backend architecture
+* Simple and explainable trading logic
+* Raw SQL usage (no ORM)
+* A lightweight frontend dashboard for visualisation
 
-| Layer     | Technology                      |
-|----------:|:--------------------------------|
-| Frontend  | : HTML, CSS, JavaScript(React)  |
-| Backend   | Java, Spring Boot (raw JDBC)    |
-| Database  | MariaDB                         |
-| Market    | Binance public REST API         |
+---
+
+## Tech Stack
+
+| Layer       | Technology                           |
+| ----------- | ------------------------------------ |
+| Frontend    | HTML, CSS, JavaScript (React + Vite) |
+| Backend     | Java 17+, Spring Boot                |
+| Database    | MariaDB                              |
+| Persistence | Raw JDBC (JdbcTemplate)              |
+| Market Data | Binance Public REST API              |
+| Testing     | JUnit 5                              |
+
+---
 
 ## Features
 
-- Training (backtest) and Trading (live simulation) modes
-- Automated trading logic based on market indicators
-- Tracking of:
-  - Account balance
-  - Portfolio holdings
-  - Trade history
-  - Equity over time
+* Training (backtest) and Trading (live simulation) modes
+* Moving Average Crossover trading strategy
+* Simulated BUY / SELL trades
+* Account and portfolio tracking
+* Trade history persistence
+* Equity snapshots over time
+* Interactive dashboard with charts
+
+---
+
+## Trading Strategy
+
+The bot uses a **Moving Average Crossover** strategy:
+
+* **Short Moving Average:** 5 periods
+* **Long Moving Average:** 20 periods
+
+### Rules
+
+* **BUY** – when the short MA crosses *above* the long MA
+* **SELL** – when the short MA crosses *below* the long MA
+* **HOLD** – otherwise
+
+Trade size is fixed (percentage of available balance).
+All decisions are deterministic and easy to explain.
+
+---
 
 ## Dashboard
 
-- Price chart with BUY / SELL markers
-- Trade history table with profit & loss (PnL)
-- Portfolio summary
-- Controls to start, pause, reset, and switch modes
+The frontend dashboard provides:
 
-## Project structure
+* Price chart with BUY / SELL markers
+* Trade history table with profit & loss
+* Portfolio and balance overview
+* Controls to:
+
+  * Start / step simulation
+  * Switch between Training and Trading modes
+  * Reset the system
+
+---
+
+## Project Structure
 
 ```
 trading_bot_212/
@@ -64,85 +110,176 @@ trading_bot_212/
 │   ├── schema.sql
 │   └── seed.sql
 ├── backend/
-└── frontend/
+│   ├── src/
+│   └── pom.xml
+├── frontend/
+│   ├── src/
+│   └── package.json
 ```
 
-## Setup
+---
 
-### Database (MariaDB)
+## Setup Instructions
 
-1. Ensure MariaDB is running locally.
+### Prerequisites
+
+Make sure you have the following installed:
+
+* **Java 17+**
+* **Node.js 18+**
+* **MariaDB**
+* **Git**
+
+---
+
+## Database Setup (MariaDB)
+
+1. Ensure MariaDB is running locally
+
 2. Create the database:
 
 ```sql
 CREATE DATABASE trading_bot_212;
 ```
 
-3. From the project root, load schema and seed data:
+3. From the **project root**, load the schema and seed data:
 
 ```bash
 mysql -u root -p trading_bot_212 < db/schema.sql
 mysql -u root -p trading_bot_212 < db/seed.sql
 ```
 
-### Backend
+This creates:
 
-1. Edit database credentials in `backend/src/main/resources/application.properties`.
+* Accounts
+* Portfolio tables
+* Trade history tables
+* Initial seed data
+
+---
+
+## Backend Setup
+
+1. Navigate to the backend folder:
+
+```bash
+cd backend
+```
+
+2. Configure database credentials in:
+
+```
+backend/src/main/resources/application.properties
+```
 
 Example:
 
-```
+```properties
 spring.datasource.url=jdbc:mariadb://localhost:3306/trading_bot_212
 spring.datasource.username=root
 spring.datasource.password=your_password
 ```
 
-2. Run the backend:
+3. Run the backend using the Maven wrapper:
 
 ```bash
-cd backend
 ./mvnw spring-boot:run
 ```
 
-The backend will be available at:
+The backend will start on:
 
+```
 http://localhost:8080
+```
 
-### Frontend
+---
 
-1. Install dependencies and start the dev server:
+## Frontend Setup
+
+1. Navigate to the frontend folder:
 
 ```bash
 cd frontend
+```
+
+2. Install dependencies:
+
+```bash
 npm install
+```
+
+3. Start the development server:
+
+```bash
 npm run dev
 ```
 
 The frontend will be available at:
 
+```
 http://localhost:5173
+```
 
-## How to run
+---
 
-1. Start MariaDB and load the database.
-2. Start the backend service.
-3. Start the frontend dev server.
-4. Open the dashboard in your browser and select Training or Trading mode.
+## How to Run the Project
 
-## Notes
+1. Start **MariaDB** and load the database
+2. Start the **backend service**
+3. Start the **frontend dev server**
+4. Open the dashboard in your browser
+5. Select **Training** or **Trading** mode and observe the bot behaviour
 
-- The backend uses raw SQL (JDBC) and does not use an ORM.
-- Binance public REST API is used for market data and does not require an API key for public endpoints.
-- The project is designed for clarity and simplicity as a take-home task.
+---
+
+## Testing
+
+Basic unit tests are included for the trading logic:
+
+* **JUnit 5** is used
+* Tests validate Moving Average crossover behaviour (BUY / SELL)
+
+Run all tests from the backend directory:
+
+```bash
+./mvnw test
+```
+
+---
+
+## Notes for Reviewers
+
+* All trades are simulated (no real funds)
+* Raw SQL (JDBC) is used intentionally — no ORM
+* Binance public REST API is used (no API key required)
+* The project prioritises **clarity, simplicity, and correctness**
+* Designed specifically as a **take-home interview task**
+
+--
 
 ## ScreenShots 
-Trading mode 
+ ## Trading mode 
+<img width="930" height="533" alt="image" src="https://github.com/user-attachments/assets/f67b670f-30f2-4bb0-a79d-ab0310d780c9" />
+
+
+
+
+
 <img width="1919" height="1057" alt="image" src="https://github.com/user-attachments/assets/66e8694c-2621-4b0d-b1c5-74e5a3334b7e" />
 <img width="675" height="460" alt="Screenshot 2" src="https://github.com/user-attachments/assets/f2ec6ee3-0c4b-4ce3-a697-ccbdec74625a" />
 
 
-Training mode 
-<img width="1873" height="1031" alt="image" src="https://github.com/user-attachments/assets/8f3c6940-6da0-4f66-8bbe-a3d835bc32a7" />
-<img width="1887" height="1066" alt="image" src="https://github.com/user-attachments/assets/b333fa85-69f4-42dc-a76b-7d296fc75dc5" />
+## Training mode 
+ # Start 
+<img width="937" height="530" alt="image" src="https://github.com/user-attachments/assets/fc6390ae-0239-4a97-a78f-839e5ac188ec" />
 
+# Finish 
+<img width="1670" height="1066" alt="image" src="https://github.com/user-attachments/assets/dc26af90-1833-4ad5-9a14-a42b618484f3" />
+<img width="1010" height="484" alt="image" src="https://github.com/user-attachments/assets/9754b6d2-df0e-486b-9cd9-e47cedc8cbd2" />
+
+
+
+## Live Demo Videos: 
+The first 8:25 of the video are for Trading mode then Training Mode is tested. I suggested watching on accelerated speed :).
+https://youtu.be/eMxZGuw-gRw
 
