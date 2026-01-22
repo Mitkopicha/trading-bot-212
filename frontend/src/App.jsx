@@ -4,7 +4,6 @@ import {
   getPortfolio,
   getTrades,
   runStep,
-  runTrain,
   resetAccount,
   trainStep,
   createEquitySnapshot,
@@ -15,6 +14,10 @@ import {
 import EquityChart from "./components/EquityChart";
 import PriceChart from "./components/PriceChart";
 import "./dashboard.css";
+
+/* ======================================================================
+   FORMAT HELPERS
+====================================================================== */
 
 function formatTs(ts) {
   if (!ts) return "-";
@@ -27,6 +30,7 @@ function formatTs(ts) {
     minute: "2-digit",
   });
 }
+
 function formatTsShort(ts) {
   if (!ts) return "-";
   const d = new Date(ts);
@@ -45,6 +49,10 @@ function formatNum(n, decimals = 2) {
   if (Number.isNaN(x)) return String(n);
   return x.toFixed(decimals);
 }
+
+/* ======================================================================
+   SMALL UI COMPONENTS
+====================================================================== */
 
 function HoldingsMiniBar({ portfolio, latestPrice }) {
   const items = (portfolio || [])
@@ -88,7 +96,15 @@ function HoldingsMiniBar({ portfolio, latestPrice }) {
   );
 }
 
+/* ======================================================================
+   APP
+====================================================================== */
+
 export default function App() {
+  /* ======================================================================
+     MODE + CORE STATE
+  ====================================================================== */
+
   const [mode, setMode] = useState("TRADING");
   const [symbol, setSymbol] = useState("BTCUSDT");
   const accountId = mode === "TRADING" ? 1 : 2;
@@ -100,53 +116,97 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
+  /* ======================================================================
+     CONTROLS + CONSTANTS
+  ====================================================================== */
+
   const [isRunning, setIsRunning] = useState(false);
-  const [intervalSec, setIntervalSec] = useState(5);
+  const intervalSec = 10;
+
   const SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
   const CANDLE_LIMIT = 100;
   const CANDLE_INTERVAL = "1m";
 
-  // Training
+  const isActive = mode === "TRADING" ? isRunning : false;
+  const [isTrainingRunning, setIsTrainingRunning] = useState(false);
+
+ const primaryLabel =
+  mode === "TRADING"
+    ? isRunning
+      ? "Pause"
+      : "Start Trading"
+    : isTrainingRunning
+    ? "Pause"
+    : "Start Training";
+
+  /* ======================================================================
+     TRAINING STATE
+  ====================================================================== */
+
   const [trainLimit, setTrainLimit] = useState(200);
   const [trainIndex, setTrainIndex] = useState(21);
-  const [isTrainingRunning, setIsTrainingRunning] = useState(false);
   const trainIndexRef = useRef(trainIndex);
 
+  const [trainOffset, setTrainOffset] = useState(500);
+  const [trainingCandles, setTrainingCandles] = useState([]);
+
+  /* ======================================================================
+     MARKET + SNAPSHOTS STATE
+  ====================================================================== */
+
   const [snapshots, setSnapshots] = useState([]);
-  const [candles, setCandles] = useState([]);
-
-  const [showSettings, setShowSettings] = useState(false);
-
-  const isActive = mode === "TRADING" ? isRunning : isTrainingRunning;
-
-  const primaryLabel =
-    mode === "TRADING"
-      ? isRunning
-        ? "Pause"
-        : "Start Trading"
-      : isTrainingRunning
-      ? "Pause"
-      : "Start Training";
+  const [liveCandles, setLiveCandles] = useState([]);
+  const [baselineEquity, setBaselineEquity] = useState(null);
+  const [lastPriceUpdateMs, setLastPriceUpdateMs] = useState(null);
+  const [latestPrices, setLatestPrices] = useState({});
 
   useEffect(() => {
     trainIndexRef.current = trainIndex;
   }, [trainIndex]);
 
-  async function loadCandles() {
-    const data = await getCandles(symbol, CANDLE_LIMIT, CANDLE_INTERVAL);
-    setCandles(data);
-  }
+  /* ======================================================================
+     DATA FETCHING
+  ====================================================================== */
+
+  // Fetch training candles ONCE per session/offset/limit/symbol
+  useEffect(() => {
+    if (mode === "TRAINING") {
+      getCandles(symbol, trainLimit, CANDLE_INTERVAL, trainOffset).then(
+        setTrainingCandles
+      );
+    } else {
+      setTrainingCandles([]);
+    }
+  }, [mode, symbol, trainLimit, trainOffset]);
+
+  // Poll live candles every 5s in TRADING mode
+  useEffect(() => {
+    let intervalId;
+
+    async function fetchLive() {
+      if (mode === "TRADING") {
+        const data = await getCandles(symbol, CANDLE_LIMIT, CANDLE_INTERVAL);
+        setLiveCandles(data);
+      }
+    }
+
+    if (mode === "TRADING") {
+      fetchLive();
+      intervalId = setInterval(fetchLive, 5000);
+    } else {
+      setLiveCandles([]);
+    }
+
+    return () => intervalId && clearInterval(intervalId);
+  }, [mode, symbol]);
 
   async function refresh() {
-    await loadCandles();
-
     setError("");
     const [a, p, t] = await Promise.all([
       getAccount(accountId),
       getPortfolio(accountId),
       getTrades(accountId),
     ]);
-
     setAccount(a);
     setPortfolio(p);
     setTrades(t);
@@ -157,41 +217,40 @@ export default function App() {
     setSnapshots(data);
   }
 
-  async function takeSnapshot() {
-    setError("");
-    await createEquitySnapshot(accountId, mode);
-    await loadSnapshots();
-    setStatus("Snapshot saved");
-  }
-
   useEffect(() => {
     loadSnapshots().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, mode]);
+useEffect(() => {
+  setBaselineEquity(null);
+}, [accountId, mode]);
 
   useEffect(() => {
     refresh().catch((e) => setError(e.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
+useEffect(() => {
+  if (baselineEquity != null) return;
+  if (!snapshots || snapshots.length === 0) return;
+
+  // Use the LAST item (oldest snapshot) as the baseline
+  const oldestSnapshot = snapshots[snapshots.length - 1];
+  const val = Number(oldestSnapshot.total_equity);
+
+  if (Number.isFinite(val)) {
+    setBaselineEquity(val);
+  }
+}, [snapshots, baselineEquity]);
+
+
+  /* ======================================================================
+     ACTIONS: STEP + RESET
+  ====================================================================== */
 
   async function handleStep() {
     try {
       setStatus("Running step...");
       const result = await runStep(accountId, symbol);
       setStatus(result);
-      await refresh();
-      await createEquitySnapshot(accountId, mode);
-      await loadSnapshots();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
 
-  async function handleTrainOnce() {
-    try {
-      setStatus("Training...");
-      const result = await runTrain(accountId, symbol, trainLimit);
-      setStatus(result);
       await refresh();
       await createEquitySnapshot(accountId, mode);
       await loadSnapshots();
@@ -214,12 +273,15 @@ export default function App() {
       setPortfolio([]);
       setSnapshots([]);
 
+      setIsTrainingRunning(false);
       setTrainIndex(21);
       trainIndexRef.current = 21;
+      setTrainingCandles([]);
 
-      await refresh(); // IMPORTANT: get fresh account/cash before baseline snapshot
+      setAccount(null);
 
-      await createEquitySnapshot(accountId, mode); // new baseline
+      await refresh();
+      await createEquitySnapshot(accountId, mode);
       await loadSnapshots();
 
       setStatus("Reset: OK");
@@ -227,6 +289,10 @@ export default function App() {
       setError(e.message);
     }
   }
+
+  /* ======================================================================
+     AUTORUN: TRADING + TRAINING
+  ====================================================================== */
 
   function startAuto() {
     setError("");
@@ -239,8 +305,36 @@ export default function App() {
     setIsRunning(false);
   }
 
-  function startTrainingAuto() {
+  async function startTrainingAuto() {
     setError("");
+    setStatus("");
+
+    if (!trainingCandles || trainingCandles.length === 0) {
+      try {
+        setStatus("Loading training candles...");
+        const data = await getCandles(
+          symbol,
+          trainLimit,
+          CANDLE_INTERVAL,
+          trainOffset
+        );
+
+        setTrainingCandles(data);
+
+        if (!data || data.length === 0) {
+          setError(
+            "No candles returned from API. Check /api/market/candles in Network tab."
+          );
+          setStatus("");
+          return;
+        }
+      } catch (e) {
+        setError("Failed to load training candles: " + e.message);
+        setStatus("");
+        return;
+      }
+    }
+
     setStatus("Training running...");
     setIsTrainingRunning(true);
   }
@@ -271,7 +365,20 @@ export default function App() {
     const id = setInterval(async () => {
       try {
         const currentIndex = trainIndexRef.current;
-        const result = await trainStep(accountId, symbol, trainLimit, currentIndex);
+
+        const candles = trainingCandles.map((c) => ({
+          timestamp: c.timestamp,
+          close: Number(c.close),
+        }));
+
+        const result = await trainStep(
+          accountId,
+          symbol,
+          trainLimit,
+          currentIndex,
+          trainOffset,
+          candles
+        );
 
         setStatus(
           `Train: ${result.signal} | trades +${result.tradesExecuted} | next=${result.nextIndex}`
@@ -295,7 +402,7 @@ export default function App() {
     }, 500);
 
     return () => clearInterval(id);
-  }, [isTrainingRunning, mode, accountId, symbol, trainLimit]);
+  }, [isTrainingRunning, mode, accountId, symbol, trainLimit, trainingCandles]);
 
   // TRADING AUTO LOOP
   useEffect(() => {
@@ -310,58 +417,227 @@ export default function App() {
     }, intervalSec * 1000);
 
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, intervalSec, mode]);
 
-  useEffect(() => {
-    loadCandles().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol, mode]);
+  /* ======================================================================
+     CHART CANDLES SELECTION (LIVE vs TRAINING)
+  ====================================================================== */
+
+  const chartCandles =
+    mode === "TRAINING"
+      ? trainingCandles.slice(0, trainIndex + 1)
+      : liveCandles;
+
+  /* ======================================================================
+     TIME NORMALIZATION
+  ====================================================================== */
+
+  function toMs(rawTs) {
+    if (rawTs == null) return null;
+
+    if (rawTs instanceof Date) return rawTs.getTime();
+
+    if (typeof rawTs === "string") {
+      const t = new Date(rawTs).getTime();
+      return Number.isNaN(t) ? null : t;
+    }
+
+    const n = Number(rawTs);
+    if (Number.isNaN(n)) return null;
+
+    if (n > 0 && n < 1e12) return n * 1000;
+    return n;
+  }
+
+  const MAX_TRADE_MARKERS = 30;
+
+  const candleMinMs =
+    chartCandles && chartCandles.length > 0
+      ? toMs(chartCandles[0].timestamp ?? chartCandles[0].ts ?? chartCandles[0].time)
+      : null;
+
+  const candleMaxMs =
+    chartCandles && chartCandles.length > 0
+      ? toMs(
+          chartCandles[chartCandles.length - 1].timestamp ??
+            chartCandles[chartCandles.length - 1].ts ??
+            chartCandles[chartCandles.length - 1].time
+        )
+      : null;
+
+  const chartTrades = (trades || [])
+    .filter((t) => {
+      const tradeMs = toMs(t.timestamp);
+      if (tradeMs == null) return false;
+
+      if (candleMinMs == null || Number.isNaN(candleMinMs)) return true;
+      if (candleMaxMs == null || Number.isNaN(candleMaxMs)) return tradeMs >= candleMinMs;
+
+      return tradeMs >= candleMinMs && tradeMs <= candleMaxMs;
+    })
+    .slice(0, MAX_TRADE_MARKERS);
+
+  /* ======================================================================
+     LATEST PRICE + LAST UPDATE TIME
+  ====================================================================== */
 
   const latestPrice =
-    candles && candles.length > 0 ? Number(candles[candles.length - 1].close) : 0;
+    chartCandles && chartCandles.length > 0
+      ? Number(chartCandles[chartCandles.length - 1].close)
+      : 0;
 
-  const cryptoValue = portfolio.reduce(
-    (sum, p) => sum + Number(p.quantity) * latestPrice,
-    0
-  );
+  useEffect(() => {
+    if (!chartCandles || chartCandles.length === 0) return;
+
+    const last = chartCandles[chartCandles.length - 1];
+    const rawTs = last?.timestamp ?? last?.ts ?? last?.time;
+    const ms = rawTs ? toMs(rawTs) : null;
+
+    if (ms && !Number.isNaN(ms)) setLastPriceUpdateMs(ms);
+  }, [chartCandles, mode, symbol]);
+
+  useEffect(() => {
+    if (!symbol) return;
+
+    const px = Number(latestPrice);
+    if (!px || Number.isNaN(px)) return;
+
+    setLatestPrices((prev) => ({ ...prev, [symbol]: px }));
+  }, [symbol, latestPrice]);
+
+  useEffect(() => {
+    if (!portfolio || portfolio.length === 0) return;
+
+    const symbolsToPrice = [...new Set(portfolio.map((p) => p.symbol))];
+    let cancelled = false;
+
+    async function fetchPrices() {
+      try {
+        const results = await Promise.all(
+          symbolsToPrice.map(async (sym) => {
+            const c = await getCandles(sym, 1, CANDLE_INTERVAL);
+            const last = c?.[c.length - 1];
+            const px = last ? Number(last.close) : null;
+            return [sym, px];
+          })
+        );
+
+        if (cancelled) return;
+
+        setLatestPrices((prev) => {
+          const next = { ...prev };
+          for (const [sym, px] of results) {
+            if (px && !Number.isNaN(px)) next[sym] = px;
+          }
+          return next;
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    fetchPrices();
+    const id = setInterval(fetchPrices, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [portfolio]);
+
+  /* ======================================================================
+     PORTFOLIO VALUE (EQUITY)
+  ====================================================================== */
+
+  const cryptoValue = portfolio.reduce((sum, p) => {
+    const px = latestPrices[p.symbol] ?? latestPrice;
+    return sum + Number(p.quantity) * Number(px || 0);
+  }, 0);
 
   const cash = account ? Number(account.cash_balance) : 0;
   const totalEquity = cash + cryptoValue;
 
-  const baselineEquity =
-    snapshots.length > 0 ? Number(snapshots[snapshots.length - 1].total_equity) : totalEquity;
+  /* ======================================================================
+     BASELINE + PnL (YOUR EXACT LOGIC)
+  ====================================================================== */
 
-  const pnl = totalEquity - baselineEquity;
+const pnl = baselineEquity == null ? null : totalEquity - baselineEquity;
+const realizedPnl = (trades || []).reduce((sum, t) => {
+  if (t.side !== "SELL") return sum;
+  const v = Number(t.pnl);
+  return Number.isFinite(v) ? sum + v : sum;
+}, 0);
 
-  const botStatus = isActive ? "Active" : "Paused";
-  const lastTradeTs = trades.length > 0 ? trades[0]?.timestamp : null;
+const unrealizedPnl = pnl == null ? null : pnl - realizedPnl;
+
+  // Optional debug (uncomment if you need it)
+  // console.log("PNL stable", { startEquity, totalEquity, pnl });
+
+  /* ======================================================================
+     TRAINING UI RANGE + PROGRESS
+  ====================================================================== */
+
+  const showDatasetRange =
+    mode === "TRAINING" &&
+    trainingCandles.length > 1 &&
+    (isTrainingRunning || trainIndex > 21);
+
+  const backtestRange = showDatasetRange
+    ? `Dataset: ${formatTs(trainingCandles[0].timestamp)} → ${formatTs(
+        trainingCandles[trainingCandles.length - 1].timestamp
+      )}`
+    : null;
+
+  const lastTradeTs = trades && trades.length > 0 ? trades[0].timestamp : null;
 
   const safeLimit = Math.max(1, Number(trainLimit || 1));
-  const progressNow = Math.min(Number(trainIndex || 0), safeLimit);
-  const progressPct = Math.min(100, Math.round((progressNow / safeLimit) * 100));
+
+  const hasTrainingTrades = trades.some((t) => t.mode === "TRAINING");
+  const trainingStarted =
+    mode === "TRAINING" && (isTrainingRunning || hasTrainingTrades);
+
+  const progressNow = trainingStarted
+    ? Math.min(Number(trainIndex || 0), safeLimit)
+    : 0;
+
+  const progressPct = trainingStarted
+    ? Math.min(100, Math.round((progressNow / safeLimit) * 100))
+    : 0;
+
+  /* ======================================================================
+     TABLE HELPERS
+  ====================================================================== */
+
+  const totalHoldingsValue = portfolio.reduce((sum, p) => {
+    const px = latestPrices[p.symbol];
+    if (!px) return sum;
+    return sum + Number(p.quantity) * Number(px);
+  }, 0);
+
+  /* ======================================================================
+     RENDER
+  ====================================================================== */
 
   return (
     <div className="container">
       <div className="header">
         <h1 className="title">Trading Bot Dashboard</h1>
-        <div className="badge">
-          {error ? `❌ ${error}` : status ? `✅ ${status}` : "Ready"}
-        </div>
       </div>
 
-      {/* SUMMARY BAR */}
+      {/* ========================= SUMMARY BAR ========================= */}
       <div className="summaryBar">
         <div className="summaryItem">
-          <span className="label">Total Equity</span>
+          <span className="label">Portfolio Value</span>
           <span className="value">${formatNum(totalEquity, 2)}</span>
         </div>
 
-        <div className={`summaryItem ${pnl >= 0 ? "pos" : "neg"}`}>
+        <div className={`summaryItem ${pnl != null && pnl >= 0 ? "pos" : pnl != null ? "neg" : ""}`}>
+
           <span className="label">Total PnL</span>
           <span className="value">
-            {pnl >= 0 ? "+" : ""}${formatNum(pnl, 2)}
-          </span>
+  {pnl == null ? "—" : `${pnl >= 0 ? "+" : ""}$${formatNum(pnl, 2)}`}
+</span>
+
         </div>
 
         <div className="summaryItem">
@@ -382,16 +658,12 @@ export default function App() {
               {lastTradeTs ? formatTs(lastTradeTs) : "-"}
             </span>
           </div>
-          <span className={`statusBadge ${botStatus.toLowerCase()}`}>
-            {botStatus}
-          </span>
         </div>
       </div>
 
-      {/* CONTROLS CARD */}
+      {/* ========================= CONTROLS ========================= */}
       <div className="card controlsCard" style={{ marginBottom: 16 }}>
         <div className="controlsLayout">
-          {/* LEFT */}
           <div className="controlsLeft">
             <h2 className="controlsTitle">Controls</h2>
 
@@ -411,14 +683,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* RIGHT */}
           <div className="controlsRight">
             <div className="controlsActionsRow">
-              {/* CENTER */}
               <div className="controlsRowLeft">
                 <label className="controlsSymbol">
-                  <span className="controlsSymbolLabel">Choose your cryptocurrency</span>
-                  <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+                  <span className="controlsSymbolLabel">
+                    Choose your cryptocurrency
+                  </span>
+                  <select
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                  >
                     {SYMBOLS.map((s) => (
                       <option key={s} value={s}>
                         {s}
@@ -428,7 +703,6 @@ export default function App() {
                 </label>
               </div>
 
-              {/* RIGHT */}
               <div className="controlsRowRight">
                 <button className="primaryBtn" onClick={togglePrimary}>
                   {primaryLabel}
@@ -437,32 +711,70 @@ export default function App() {
                 <button className="dangerBtn" onClick={handleReset}>
                   Reset
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                <button
-                  className="iconBtn"
-                  onClick={() => setShowSettings((v) => !v)}
-                  title="Settings"
-                >
-                  ⚙️
-                </button>
+      {/* ========================= MAIN GRID ========================= */}
+      <div className="grid">
+        <div className="stack">
+          <div className="card">
+            <div className="cardTopRow">
+              <h2>Price Chart</h2>
+            </div>
+            <div className="chartHeader">
+              <div>
+                <div className="chartTitleRow">
+                  <h1 className="chartSymbol" style={{ fontSize: "3rem" }}>
+  {symbol}
+</h1>
+                </div>
+
+                <div className="chartSub latestPrice">
+                  Latest Price:{" "}
+                  <span className="priceValue">{formatNum(latestPrice, 2)}</span>
+                </div>
+
+                <div className="lastUpdate">
+                  Last update:{" "}
+                  {lastPriceUpdateMs
+                    ? new Date(lastPriceUpdateMs).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })
+                    : "—"}
+                </div>
               </div>
             </div>
 
+            <PriceChart candles={chartCandles} trades={chartTrades} />
+
             {mode === "TRAINING" && (
-              <div className="trainingRow">
-                <div className="trainingLeft">
-                  <div className="trainingProgressLabel">
-                    Progress: <strong>{progressNow}</strong> / {safeLimit} ({progressPct}%)
+              <div className="backtestProgress">
+                <div className="backtestTop">
+                  <div className="backtestLabel">
+                    <strong>Training replay</strong>
+                    <span className="small">
+                      Replay position: Candle <strong>{progressNow}</strong> of{" "}
+                      {safeLimit}
+                    </span>
                   </div>
-                  <div className="trainingProgressTrack">
-                    <div
-                      className="trainingProgressFill"
-                      style={{ width: `${progressPct}%` }}
-                    />
-                  </div>
+                  <span className="backtestHint small">
+                    Each step advances 1 candle
+                  </span>
                 </div>
 
-                <div className="trainingRight">
+                <div className="backtestTrack">
+                  <div
+                    className="backtestFill"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+
+                <div className="backtestControls">
                   <label className="small">
                     Training data size (candles):&nbsp;
                     <input
@@ -472,96 +784,46 @@ export default function App() {
                       onChange={(e) => setTrainLimit(Number(e.target.value))}
                     />
                   </label>
-
-                  <button onClick={handleTrainOnce}>Run Backtest (once)</button>
                 </div>
               </div>
             )}
 
-            {showSettings && (
-              <div className="settingsPanel">
-                {mode === "TRADING" && (
-                  <label className="small">
-                    Auto interval (sec):&nbsp;
-                    <input
-                      type="number"
-                      min="1"
-                      value={intervalSec}
-                      onChange={(e) => setIntervalSec(Number(e.target.value))}
-                    />
-                  </label>
-                )}
-
-                {mode === "TRAINING" && (
-                  <div className="small" style={{ color: "var(--muted)" }}>
-                    Advanced: the training pointer is managed automatically.
-                  </div>
-                )}
+            {backtestRange && (
+              <div
+                className="backtestRangeLabel"
+                style={{
+                  marginTop: 4,
+                  color: "var(--muted)",
+                  fontSize: 12,
+                }}
+              >
+                {backtestRange}
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-
-      {/* MAIN GRID */}
-      <div className="grid">
-        <div className="stack">
-          <div className="card">
-            <div className="cardTopRow">
-              <h2>Price</h2>
-              <span className="cardMeta">{`Last ${CANDLE_LIMIT} x ${CANDLE_INTERVAL} candles`}</span>
-            </div>
-            <div className="chartHeader">
-              <div>
-                <div className="chartTitleRow">
-                  <span className="chartSymbol">{symbol}</span>
-                  <span className="chartMetaDot"></span>
-                  <span className="chartMeta">{CANDLE_INTERVAL} candles</span>
-                  <span className="chartMetaDot"></span>
-                  <span className="chartMeta">Last {CANDLE_LIMIT} {CANDLE_INTERVAL === "1m" ? "minutes" : "candles"}</span>
-                </div>
-                <div className="chartSub">
-                  Latest Price: {formatNum(latestPrice, 2)}
-                </div>
-              </div>
-
-              <div className="chartLegend">
-                <span className="legendPill buy">Buy</span>
-                <span className="legendPill sell">Sell</span>
-              </div>
-            </div>
-            <PriceChart candles={candles} trades={trades} />
-          </div>
 
           <div className="card">
             <div className="cardTopRow">
-              <h2>Equity</h2>
+              <h2>Portfolio Value</h2>
               <span className="cardMeta">{`Last ${snapshots.length} snapshots ~ Captured on each step`}</span>
             </div>
 
             <div className="equityMetaRow">
               <div className="equityMeta">
                 <span className="small">Start</span>
-                <strong>${snapshots.length ? formatNum(Number(snapshots[snapshots.length - 1].total_equity), 2) : "—"}</strong>
+                <strong>
+                  $
+                  {snapshots.length
+                    ? formatNum(Number(snapshots[snapshots.length - 1].total_equity), 2)
+                    : "—"}
+                </strong>
               </div>
               <div className="equityMeta">
                 <span className="small">Now</span>
                 <strong>${formatNum(totalEquity, 2)}</strong>
               </div>
-              <div className={`equityPnl ${pnl >= 0 ? "pos" : "neg"}`}>
-                {pnl >= 0 ? "+" : ""}${formatNum(pnl, 2)}
-              </div>
             </div>
 
-            {showSettings && (
-              <div style={{ marginBottom: 10 }}>
-                <button onClick={takeSnapshot} style={{ marginRight: 10 }}>
-                  Take Snapshot
-                </button>
-                <button onClick={loadSnapshots}>Reload</button>
-              </div>
-            )}
             <EquityChart snapshots={snapshots} />
           </div>
         </div>
@@ -575,23 +837,44 @@ export default function App() {
                   <th>Symbol</th>
                   <th>Quantity</th>
                   <th>Avg Entry</th>
+                  <th>Value</th>
                   <th>Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {portfolio.length === 0 ? (
                   <tr>
-                    <td colSpan="4">No holdings yet. Start trading to buy assets.</td>
+                    <td colSpan="5">No holdings yet. Start trading to buy assets.</td>
                   </tr>
                 ) : (
-                  portfolio.map((row, idx) => (
-                    <tr key={idx}>
-                      <td>{row.symbol}</td>
-                      <td>{formatNum(row.quantity, 8)}</td>
-                      <td>{formatNum(row.avg_entry_price, 2)}</td>
-                      <td>{formatTs(row.updated_at)}</td>
+                  <>
+                    {portfolio.map((row, idx) => {
+                      const px = latestPrices[row.symbol];
+                      const value =
+                        px == null || Number.isNaN(Number(px))
+                          ? null
+                          : Number(row.quantity) * Number(px);
+
+                      return (
+                        <tr key={idx}>
+                          <td>{row.symbol}</td>
+                          <td>{formatNum(row.quantity, 8)}</td>
+                          <td>{formatNum(row.avg_entry_price, 2)}</td>
+                          <td>{value == null ? "—" : `$${formatNum(value, 2)}`}</td>
+                          <td>{formatTs(row.updated_at)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr>
+                      <td colSpan="3">
+                        <strong>Total</strong>
+                      </td>
+                      <td>
+                        <strong>${formatNum(totalHoldingsValue, 2)}</strong>
+                      </td>
+                      <td />
                     </tr>
-                  ))
+                  </>
                 )}
               </tbody>
             </table>
@@ -612,22 +895,24 @@ export default function App() {
                     <th>PNL</th>
                   </tr>
                 </thead>
-              <tbody>
-                {trades.length === 0 ? (
-                  <tr>
-                    <td colSpan="6">No trades yet. Click “Start Trading” to begin!</td>
-                  </tr>
-                ) : (
-                  trades.map((row, idx) => {
-                    const pnlNum =
-                      row.pnl === null || row.pnl === undefined ? null : Number(row.pnl);
+                <tbody>
+                  {trades.length === 0 ? (
+                    <tr>
+                      <td colSpan="6">No trades yet. Click “Start Trading” to begin!</td>
+                    </tr>
+                  ) : (
+                    trades.map((row, idx) => {
+                      const pnlNum =
+                        row.pnl === null || row.pnl === undefined
+                          ? null
+                          : Number(row.pnl);
 
-                    const pnlClass =
-                      pnlNum === null || Number.isNaN(pnlNum)
-                        ? "pnlMuted"
-                        : pnlNum >= 0
-                        ? "pnlPos"
-                        : "pnlNeg";
+                      const pnlClass =
+                        pnlNum === null || Number.isNaN(pnlNum)
+                          ? "pnlMuted"
+                          : pnlNum >= 0
+                          ? "pnlPos"
+                          : "pnlNeg";
 
                       return (
                         <tr key={idx}>
@@ -638,19 +923,18 @@ export default function App() {
                           <td>{row.symbol}</td>
                           <td>{formatNum(row.quantity, 8)}</td>
                           <td>{formatNum(row.price, 2)}</td>
-                        <td className={pnlClass}>
-                          {pnlNum === null || Number.isNaN(pnlNum)
-                            ? "—"
-                            : formatNum(pnlNum, 2)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <td className={pnlClass}>
+                            {pnlNum === null || Number.isNaN(pnlNum)
+                              ? "—"
+                              : formatNum(pnlNum, 2)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-
           </div>
         </div>
       </div>

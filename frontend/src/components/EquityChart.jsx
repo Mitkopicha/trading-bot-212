@@ -21,7 +21,12 @@ export default function EquityChart({ snapshots }) {
     return <div>No equity history yet (take 2+ snapshots).</div>;
   }
 
-  const values = snapshots.map(s => Number(s.total_equity));
+  // Sort snapshots by timestamp ascending (oldest → newest)
+  const sortedSnapshots = [...snapshots].sort(
+  (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+);
+
+  const values = sortedSnapshots.map(s => Number(s.total_equity));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -42,12 +47,12 @@ export default function EquityChart({ snapshots }) {
   const netChangeColor = netChange >= 0 ? "#3ddc97" : "#ff6b6b";
 
   // X-axis time labels
-  const step = Math.ceil(snapshots.length / 4);
+  const step = Math.ceil(sortedSnapshots.length / 4);
   const timeLabels = [];
-  for (let i = 0; i < snapshots.length; i += step) {
-    const timeStr = formatTimeShort(snapshots[i].timestamp);
+  for (let i = 0; i < sortedSnapshots.length; i += step) {
+    const timeStr = formatTimeShort(sortedSnapshots[i].timestamp);
     const timePart = timeStr.split(", ").pop(); // Get "HH:MM" part
-    timeLabels.push({ idx: i, label: timePart || `s-${snapshots.length - i}` });
+    timeLabels.push({ idx: i, label: timePart || `s-${sortedSnapshots.length - i}` });
   }
 
   return (
@@ -95,17 +100,7 @@ export default function EquityChart({ snapshots }) {
         <line x1={pad} y1={height - pad} x2={width - pad} y2={height - pad} stroke="var(--border)" strokeWidth="1" />
       </svg>
 
-      <div style={{ display: "flex", gap: "12px", fontSize: "12px", marginTop: "6px" }}>
-        <div>
-          <span style={{ color: "var(--muted)" }}>Start:</span> ${first.toFixed(2)}
-        </div>
-        <div>
-          <span style={{ color: "var(--muted)" }}>Now:</span> ${last.toFixed(2)}
-        </div>
-        <div style={{ marginLeft: "auto", fontWeight: "800", color: netChangeColor }}>
-          Net: {netChange >= 0 ? "+" : ""}${netChange.toFixed(2)}
-        </div>
-      </div>
+      
     </div>
   );
 }
