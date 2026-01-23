@@ -7,7 +7,7 @@ This project was built as a **take-home interview task**, focusing on clarity, c
 
 ---
 ## Overview
-rThis repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
+This repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
 * **Training Mode** – Backtesting the trading strategy on historical market data
 * **Trading Mode** – Live simulation using current market prices
 The goal is to demonstrate:
