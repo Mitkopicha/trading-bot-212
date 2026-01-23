@@ -6,24 +6,10 @@ A **simple, clean web application** that simulates an automated crypto trading b
 All trades are **fully simulated** — **no real money** is used.
 This project was built as a **take-home interview task**, focusing on clarity, correctness, and explainable logic rather than complexity.
 ---
-## Table of Contents
-* [Overview](#overview)
-* [Tech Stack](#tech-stack)
-* [Features](#features)
-* [Trading Strategy](#trading-strategy)
-* [Dashboard](#dashboard)
-* [Project Structure](#project-structure)
-* [Setup Instructions](#setup-instructions)
-  * [Prerequisites](#prerequisites)
-  * [Database Setup (MariaDB)](#database-setup-mariadb)
-  * [Backend Setup](#backend-setup)
-  * [Frontend Setup](#frontend-setup)
-* [How to Run the Project](#how-to-run-the-project)
-* [Testing](#testing)
-* [Notes for Reviewers](#notes-for-reviewers)
+
 ---
 ## Overview
-This repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
+rThis repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
 * **Training Mode** – Backtesting the trading strategy on historical market data
 * **Trading Mode** – Live simulation using current market prices
 The goal is to demonstrate:
