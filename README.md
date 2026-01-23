@@ -176,14 +176,17 @@ Run all tests from the backend directory:
 ./mvnw test
 ```
 ## Results
+
 <img width="1196" height="293" alt="image" src="https://github.com/user-attachments/assets/61fe4d8d-732e-42aa-80d1-ffd531962334" />
+
 ---
-## Notes fo Reviewers
-All trades are simulated (no real funds)
-* Raw SQL (JDBC) is used intentionally — no ORM
-* Binance public REST API is used (no API key required)
-* The project prioritises **clarity, simplicity, and correctness**
-* Designed specifically as a **take-home interview task**
+
+
+## Notes
+
+All trades are simulated with no real funds in use. Raw SQL code is used intentionally without ORM usage.Binance public REST API is used with no API key required. The project prioritises clarity, simplicity.
+
+
 --
 ## ScreenShots 
  ## Trading mode 
