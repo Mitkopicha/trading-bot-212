@@ -5,16 +5,18 @@ All trades are **fully simulated** — **no real money** is used.
 This project was built as a **take-home interview task**, focusing on clarity, correctness, and explainable logic rather than complexity.
 ---
 
+<img width="1670" height="1066" alt="image" src="https://github.com/user-attachments/assets/dc26af90-1833-4ad5-9a14-a42b618484f3" />
+<img width="1010" height="484" alt="image" src="https://github.com/user-attachments/assets/9754b6d2-df0e-486b-9cd9-e47cedc8cbd2" />
+
 ---
 ## Overview
 This repository contains a **minimal automated trading bot simulator**. The application supports two operating modes:
-* **Training Mode** – Backtesting the trading strategy on historical market data
-* **Trading Mode** – Live simulation using current market prices
-The goal is to demonstrate:
-* Clean backend architecture
-* Simple and explainable trading logic
-* Raw SQL usage (no ORM)
-* A lightweight frontend dashboard for visualisation
+
+1 - **Training Mode** – Backtesting the trading strategy on historical market data
+
+1 - **Trading Mode** – Live simulation using current market prices
+
+The goal is to demonstrate backend architecture with imple and explainable trading logic and raw SQL code with no ORM usage with a frontend dashboard for visualisation and control
 ---
 ## Tech Stack
 | Layer       | Technology                           |
@@ -37,14 +39,21 @@ The goal is to demonstrate:
 ---
 ## Trading Strategy
 The bot uses a **Moving Average Crossover** strategy:
-* **Short Moving Average:** 5 periods
-* **Long Moving Average:** 20 periods
+
+**Short Moving Average:** 5 periods
+
+**Long Moving Average:** 20 periods
+
 ### Rules
-* **BUY** – when the short MA crosses *above* the long MA
-* **SELL** – when the short MA crosses *below* the long MA
-* **HOLD** – otherwise
-Trade size is fixed (percentage of available balance).
-All decisions are deterministic and easy to explain.
+
+1 - **BUY** – when the short MA crosses *above* the long MA
+
+2 - **SELL** – when the short MA crosses *below* the long MA
+
+3 -  **HOLD** – otherwise
+
+Trade size is fixed a percentage of the available balance.
+
 ---
 ## Dashboard
 The frontend dashboard provides:
@@ -169,8 +178,8 @@ Run all tests from the backend directory:
 ## Results
 <img width="1196" height="293" alt="image" src="https://github.com/user-attachments/assets/61fe4d8d-732e-42aa-80d1-ffd531962334" />
 ---
-## Notes for Reviewers
-* All trades are simulated (no real funds)
+## Notes fo Reviewers
+All trades are simulated (no real funds)
 * Raw SQL (JDBC) is used intentionally — no ORM
 * Binance public REST API is used (no API key required)
 * The project prioritises **clarity, simplicity, and correctness**
