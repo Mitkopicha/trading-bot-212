@@ -1,6 +1,4 @@
 
-Original file line number	Diff line number	Diff line change
-@@ -1,290 +1,23 @@
 # Auto Trading Bot — Take-Home Task
 A **simple, clean web application** that simulates an automated crypto trading bot.
 All trades are **fully simulated** — **no real money** is used.
